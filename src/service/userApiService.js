@@ -42,12 +42,21 @@ const getUserWithPagination = async (page, limit) => {
     const { count, rows } = await db.User.findAndCountAll({
       offset: offset,
       limit: limit,
-      attributes: ["id", "username", "email", "phone", "gender", "address"],
-      include: { model: db.Group, attributes: ["name", "description", "id"] },
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "phone",
+        "gender",
+        "address",
+        "createdAt",
+      ],
+      include: { model: db.Role, attributes: ["name", "description", "id"] },
       order: [["id", "DESC"]],
     });
 
     let totalPages = Math.ceil(count / limit);
+
     let data = {
       totalRows: count,
       totalPages: totalPages,
