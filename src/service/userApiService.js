@@ -37,7 +37,7 @@ const getAllUser = async () => {
 
 const getUserWithPagination = async (page, limit) => {
   try {
-    let offset = (page - 1) * limit;
+    let offset = (page - 1) * limit; //page
 
     const { count, rows } = await db.User.findAndCountAll({
       offset: offset,
@@ -55,7 +55,7 @@ const getUserWithPagination = async (page, limit) => {
       order: [["id", "DESC"]],
     });
 
-    let totalPages = Math.ceil(count / limit);
+    let totalPages = Math.ceil(count / limit); //pageSize
 
     let data = {
       totalRows: count,
@@ -64,7 +64,7 @@ const getUserWithPagination = async (page, limit) => {
     };
 
     return {
-      EM: "fetch ok",
+      EM: "Get users successful",
       EC: 0,
       DT: data,
     };
@@ -125,13 +125,14 @@ const createNewUser = async (data) => {
 
 const updateUser = async (data) => {
   try {
-    if (!data.groupId) {
+    if (!data.role_id) {
       return {
-        EM: "Error with empty GroupId",
+        EM: "Error with empty roleId",
         EC: 1,
         DT: "group",
       };
     }
+
     let user = await db.User.findOne({
       where: { id: data.id },
     });
@@ -141,8 +142,9 @@ const updateUser = async (data) => {
       await user.update({
         username: data.username,
         address: data.address,
-        sex: data.sex,
-        groupId: data.groupId,
+        gender: data.gender,
+        phone: data.phone,
+        roleId: data.role_id,
       });
 
       return {
