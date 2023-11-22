@@ -12,7 +12,7 @@ const initApiRoutes = (app) => {
   //rest api
   //GET - R, POST- C, PUT - U, DELETE - D
 
-  router.all("*", checkUserJWT, checkUserPermission);
+  //router.all("*", checkUserJWT, checkUserPermission);
   router.post("/register", authController.registerController);
   router.post("/login", authController.loginController);
   router.post("/logout", authController.logoutController);
@@ -24,6 +24,8 @@ const initApiRoutes = (app) => {
   router.post("/user/create", userController.createFunc);
   router.put("/user/update", userController.updateFunc);
   router.delete("/user/delete", userController.deleteFunc);
+
+  router.get("/user/get", userController.getUserQueries);
 
   router.get("/user/:id", userController.getOneUser);
 

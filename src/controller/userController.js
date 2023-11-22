@@ -1,5 +1,6 @@
 import userApiService from "../service/userApiService";
 import db from "../models";
+import { Op } from "sequelize";
 
 const getOneUser = async (req, res) => {
   try {
@@ -16,6 +17,74 @@ const getOneUser = async (req, res) => {
         EC: -1,
         EM: "Not found user",
         DT: [],
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const getUserQueries = async (req, res) => {
+  try {
+    let {
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      filterBy,
+      filterValue,
+      search,
+      gender,
+    } = req.query;
+
+    page = parseInt(page) || 1; //currentPage
+    pageSize = parseInt(pageSize) || 5; // limit
+    sortBy = sortBy || "createdAt"; // Default to sorting by createdAt
+    sortOrder = sortOrder || "desc"; // Default to descending order
+
+    filterBy = filterBy || null; //field
+    filterValue = filterValue || null; //valuefield
+
+    gender = gender || null;
+
+    search = search || null;
+
+    const whereClause = {};
+    const offset = (page - 1) * pageSize;
+
+    if (gender) {
+      whereClause.gender = gender;
+    }
+
+    if (filterBy && filterValue) {
+      whereClause[filterBy] = filterValue;
+    }
+
+    if (search) {
+      whereClause.username = {
+        [Op.like]: `%${search}%`,
+      };
+    }
+
+    let users = await db.User.findAll({
+      attributes: ["id", "username", "email", "phone", "gender", "createdAt"],
+      order: [[sortBy, sortOrder.toUpperCase()]],
+      where: whereClause,
+      include: { model: db.Role, attributes: ["name", "description"] },
+      offset,
+      limit: pageSize,
+    });
+
+    if (users) {
+      return res.status(200).json({
+        message: "Get success",
+        status: 0,
+        data: users,
+      });
+    } else {
+      return res.status(500).json({
+        message: "Failed",
+        status: 1,
       });
     }
   } catch (error) {
@@ -126,4 +195,5 @@ module.exports = {
   deleteFunc,
   getUserAccount,
   getOneUser,
+  getUserQueries,
 };
