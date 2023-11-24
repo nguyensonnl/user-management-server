@@ -2,6 +2,9 @@ import userApiService from "../service/userApiService";
 import db from "../models";
 import { Op } from "sequelize";
 
+const NodeCache = require("node-cache");
+const cache = new NodeCache();
+
 const getOneUser = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -24,6 +27,75 @@ const getOneUser = async (req, res) => {
   }
 };
 
+const getUserQueriesV2 = async (req, res) => {
+  try {
+    let { page, pageSize, sortBy, sortOrder, filterField, filterValue, role } =
+      req.query;
+
+    page = +page || 1;
+    pageSize = +pageSize || 5;
+    sortBy = sortBy || "createdAt";
+    sortOrder = sortOrder || "desc";
+    filterField = filterField || null;
+    filterValue = filterValue || null;
+    role = +role || null;
+
+    //Handle paginate
+    const offset = (+page - 1) * +pageSize;
+    const limit = +pageSize || 5;
+
+    //handle get data
+    const data = await db.User.findAndCountAll({
+      offset,
+      limit,
+      order: [[sortBy, sortOrder]],
+    });
+
+    // Xử lý bộ lọc chỉ trên trang hiện tại
+    if (filterField && filterValue) {
+      data.rows = data.rows.filter((item) =>
+        item[filterField].toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+
+    if (role) {
+      data.rows = data.rows.filter((item) => item.roleId === role);
+    }
+
+    // Thực hiện truy vấn chỉ lấy một phần nhỏ của dữ liệu
+    // let data;
+    // if (filterField && filterValue) {
+    //   data = await db.User.findAndCountAll({
+    //     where: {
+    //       [filterField]: {
+    //         [Op.like]: `%${filterValue}%`,
+    //       },
+    //     },
+    //     order: [[sortBy, sortOrder]],
+    //     offset,
+    //     limit,
+    //   });
+    // } else {
+    //   data = await db.User.findAndCountAll({
+    //     order: [[sortBy, sortOrder]],
+    //     offset,
+    //     limit,
+    //   });
+    // }
+
+    res.status(200).json({
+      count: data.count,
+      rows: data.rows,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Failed",
+      status: 1,
+    });
+  }
+};
+
 const getUserQueries = async (req, res) => {
   try {
     let {
@@ -35,22 +107,25 @@ const getUserQueries = async (req, res) => {
       filterValue,
       search,
       gender,
+      role,
     } = req.query;
 
-    page = parseInt(page) || 1; //currentPage
-    pageSize = parseInt(pageSize) || 5; // limit
-    sortBy = sortBy || "createdAt"; // Default to sorting by createdAt
-    sortOrder = sortOrder || "desc"; // Default to descending order
-
-    filterBy = filterBy || null; //field
-    filterValue = filterValue || null; //valuefield
-
+    page = +page || 1;
+    pageSize = +pageSize || 5;
+    sortBy = sortBy || "createdAt";
+    sortOrder = sortOrder || "desc";
+    filterBy = filterBy || null;
+    filterValue = filterValue || null;
     gender = gender || null;
-
     search = search || null;
+    role = role || null;
 
     const whereClause = {};
     const offset = (page - 1) * pageSize;
+
+    if (role) {
+      whereClause.roleId = +role;
+    }
 
     if (gender) {
       whereClause.gender = gender;
@@ -66,20 +141,25 @@ const getUserQueries = async (req, res) => {
       };
     }
 
-    let users = await db.User.findAll({
+    let users = await db.User.findAndCountAll({
       attributes: ["id", "username", "email", "phone", "gender", "createdAt"],
+      include: { model: db.Role, attributes: ["name", "description"] },
       order: [[sortBy, sortOrder.toUpperCase()]],
       where: whereClause,
-      include: { model: db.Role, attributes: ["name", "description"] },
       offset,
       limit: pageSize,
     });
 
-    if (users) {
+    if (users.rows.length > 0) {
       return res.status(200).json({
         message: "Get success",
         status: 0,
-        data: users,
+        data: users.rows,
+        paginate: {
+          total: users.count,
+          limit: pageSize,
+          page: page,
+        },
       });
     } else {
       return res.status(500).json({
@@ -196,4 +276,5 @@ module.exports = {
   getUserAccount,
   getOneUser,
   getUserQueries,
+  getUserQueriesV2,
 };

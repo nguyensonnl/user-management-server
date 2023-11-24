@@ -26,6 +26,7 @@ const initApiRoutes = (app) => {
   router.delete("/user/delete", userController.deleteFunc);
 
   router.get("/user/get", userController.getUserQueries);
+  router.get("/user/get/v2", userController.getUserQueriesV2);
 
   router.get("/user/:id", userController.getOneUser);
 
