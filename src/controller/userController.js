@@ -27,10 +27,19 @@ const getOneUser = async (req, res) => {
   }
 };
 
+//query trên trang trên trang hiện tại không ảnh hưởng toàn bộ danh sách
 const getUserQueriesV2 = async (req, res) => {
   try {
-    let { page, pageSize, sortBy, sortOrder, filterField, filterValue, role } =
-      req.query;
+    let {
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      filterField,
+      filterValue,
+      role,
+      search,
+    } = req.query;
 
     page = +page || 1;
     pageSize = +pageSize || 5;
@@ -46,10 +55,16 @@ const getUserQueriesV2 = async (req, res) => {
 
     //handle get data
     const data = await db.User.findAndCountAll({
+      attributes: ["id", "username", "email", "phone", "gender", "createdAt"],
+      include: { model: db.Role, attributes: ["id", "name", "description"] },
+      order: [[sortBy, sortOrder]],
       offset,
       limit,
-      order: [[sortBy, sortOrder]],
     });
+
+    //console.log(JSON.stringify(data, null, 2));
+
+    let totalPages = Math.ceil(data.count / limit);
 
     // Xử lý bộ lọc chỉ trên trang hiện tại
     if (filterField && filterValue) {
@@ -59,7 +74,14 @@ const getUserQueriesV2 = async (req, res) => {
     }
 
     if (role) {
-      data.rows = data.rows.filter((item) => item.roleId === role);
+      data.rows = data.rows.filter((item) => item?.Role?.id === role);
+    }
+
+    if (search) {
+      data.rows = data.rows.filter(
+        (item) =>
+          item.username.trim().toLowerCase() === search.trim().toLowerCase()
+      );
     }
 
     // Thực hiện truy vấn chỉ lấy một phần nhỏ của dữ liệu
@@ -84,8 +106,14 @@ const getUserQueriesV2 = async (req, res) => {
     // }
 
     res.status(200).json({
-      count: data.count,
-      rows: data.rows,
+      paginate: {
+        count: data.count,
+        page: page,
+        limit: limit,
+        totalPages: totalPages,
+      },
+
+      data: data.rows,
     });
   } catch (error) {
     console.log(error);
