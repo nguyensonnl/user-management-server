@@ -1,5 +1,6 @@
 import userApiService from "../service/userApiService";
 import permissionService from "../service/permissionService";
+import db from "../models";
 
 const permissionController = {};
 
@@ -18,6 +19,65 @@ permissionController.getPermissionController = async (req, res) => {
       EM: "error from server", // error message
       EC: "-1", //error code
       DT: "", //date
+    });
+  }
+};
+
+permissionController.getPermissionV2 = async (req, res) => {
+  try {
+    let { page, limit, search, module } = req.query;
+
+    page = +page || 1;
+    limit = +limit || 5;
+    search = search || null;
+    module = module || null;
+
+    //paginate
+    const offset = (page - 1) * limit;
+
+    //get data
+    const data = await db.Permission.findAndCountAll({
+      attributes: ["id", "url", "description", "module"],
+      //  order: [[sortBy, sortOrder]],
+      offset,
+      limit,
+    });
+
+    //console.log(JSON.stringify(data, null, 2));
+
+    let totalPages = Math.ceil(data.count / limit);
+
+    // Xử lý bộ lọc chỉ trên trang hiện tại
+    // if (filterField && filterValue) {
+    //   data.rows = data.rows.filter((item) =>
+    //     item[filterField].toLowerCase().includes(filterValue.toLowerCase())
+    //   );
+    // }
+
+    if (module) {
+      data.rows = data.rows.filter((item) => item.module === module);
+    }
+
+    if (search) {
+      data.rows = data.rows.filter((item) =>
+        item.description.toLowerCase().split(" ").includes(search.toLowerCase())
+      );
+    }
+
+    res.status(200).json({
+      paginate: {
+        count: data.count,
+        page: page,
+        limit: limit,
+        totalPages: totalPages,
+      },
+      data: data.rows,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Failed",
+      status: 1,
     });
   }
 };

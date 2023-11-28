@@ -1,4 +1,5 @@
 import roleService from "../service/roleService";
+import db from "../models";
 
 const roleController = {};
 
@@ -16,6 +17,51 @@ roleController.createNewRoleController = async (req, res) => {
       EM: "error from server", // error message
       EC: "-1", //error code
       DT: "", //date
+    });
+  }
+};
+
+roleController.getRoleV2 = async (req, res) => {
+  try {
+    let { page, limit, search } = req.query;
+
+    page = +page || 1;
+    limit = +limit || 5;
+    search = search || null;
+
+    //paginate
+    const offset = (page - 1) * limit;
+
+    //get data
+    const data = await db.Role.findAndCountAll({
+      attributes: ["id", "name", "description"],
+      //  order: [[sortBy, sortOrder]],
+      offset,
+      limit,
+    });
+
+    let totalPages = Math.ceil(data.count / limit);
+
+    if (search) {
+      data.rows = data.rows.filter((item) =>
+        item.name.toLowerCase().split(" ").includes(search.toLowerCase())
+      );
+    }
+
+    res.status(200).json({
+      paginate: {
+        count: data.count,
+        page: page,
+        limit: limit,
+        totalPages: totalPages,
+      },
+      data: data.rows,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Failed",
+      status: 1,
     });
   }
 };

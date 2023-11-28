@@ -12,7 +12,7 @@ const initApiRoutes = (app) => {
   //rest api
   //GET - R, POST- C, PUT - U, DELETE - D
 
-  //router.all("*", checkUserJWT, checkUserPermission);
+  // router.all("*", checkUserJWT, checkUserPermission);
   router.post("/register", authController.registerController);
   router.post("/login", authController.loginController);
   router.post("/logout", authController.logoutController);
@@ -31,6 +31,9 @@ const initApiRoutes = (app) => {
   router.get("/user/:id", userController.getOneUser);
 
   // permission routes
+
+  router.get("/permission/v2", permissionController.getPermissionV2);
+
   router.get("/permission", permissionController.getPermissionController);
   router.post(
     "/permission/create",
@@ -53,6 +56,8 @@ const initApiRoutes = (app) => {
   //roles routes
   router.get("/role", roleController.getRoleController);
   router.post("/role/create", roleController.createNewRoleController);
+
+  router.get("/role/v2", roleController.getRoleV2);
 
   return app.use("/api/v1/", router);
 };
